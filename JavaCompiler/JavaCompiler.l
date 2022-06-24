@@ -1,8 +1,19 @@
 %%
 %public
 %standalone
-%line
+%line 
+
+%{
+
+
+public int getLine(){return yyline+1;}
+
+
+%}
+
 %column
+
+
 
 ID = [a-zA-Z][_a-zA-Z0-9]*
 SKIP = [ \t\n\r]+
@@ -10,6 +21,7 @@ UNKNOWN_TOKEN = .
 INT_NUMBER = [+-]?[0-9]{1,10}
 
 %%
+
 
 <YYINITIAL> {
 	"int"		{ return JavaCompilerLexer._INT;}

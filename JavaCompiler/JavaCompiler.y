@@ -11,14 +11,20 @@
   import java.io.Reader;
   import java.io.IOException;
   import java.io.StreamTokenizer;
+  import java.util.*;
   
 }
 
 %code {
   
+  
   public String getSymbol(){
     return "abbc";
   }
+  
+  MainClass mainClass = new MainClass();
+
+  
 
   public static void main(String args[]) throws IOException {
     JavaCompilerLexer lexer = new JavaCompilerLexer(System.in);
@@ -33,15 +39,16 @@
   }
 }
 
-%token _INT
-%token _STRING
+
+
+
 %token _IF
 %token _ELSE
 %token _RETURN
 %token _CLASS
 %token _PUBLIC
 %token _STATIC
-%token _VOID
+
 %token _MAIN
 %token _EXTENDS
 %token _SOUT
@@ -67,6 +74,12 @@
 
 %token <String> _ID
 %token <Integer> _INT_NUMBER
+%token <String> _INT
+%token <String> _STRING
+%token <String> _VOID
+
+%type <String> type 
+%type <String> variable_type
 
 
 %%
@@ -97,12 +110,32 @@ main_method_declaration
   
 method_declaration
   : _PUBLIC type _ID _LPAREN _RPAREN _LBRACKET statement_list _RBRACKET
+   {
+     if(mainClass.hasMethod($3)){
+     
+       
+     }
+   	mainClass.addMethod(new Method($3, $2, new ArrayList<Param>()));
+   	for (Method m:mainClass.getMethods()){
+   	  System.out.println(m.methodName);
+   	
+   	}
+   
+   
+   }
   | _PUBLIC type _ID _LPAREN parameters _RPAREN _LBRACKET statement_list _RBRACKET
+  {
+  
+  
+  
+  }
+
+  
   ;
   
 parameters
   : parameters _COMMA variable_type _ID
-  | variable_type _ID
+  | variable_type _ID 
   ;
   
 variable_declaration
@@ -144,13 +177,13 @@ param
   ;
   
 type
-  : _VOID
-  | variable_type
+  : _VOID {$$="void";}
+  | variable_type {$$ = $1;}
   ;
   
 variable_type
-  : _INT
-  | _STRING
+  : _INT {$$ = "int";}
+  | _STRING {$$= "String";}
   ;
 
 
@@ -216,6 +249,10 @@ class JavaCompilerLexer implements JavaCompiler.Lexer {
   
   String yylval;
   
+  
+  public int getLine(){
+   return yylex.getLine();
+  }
 
   public JavaCompilerLexer(InputStream is){
     it = new InputStreamReader(is);
@@ -226,13 +263,13 @@ class JavaCompilerLexer implements JavaCompiler.Lexer {
 
   @Override
   public void yyerror (String s){
-    System.err.println(s);
+    System.err.println("Error at line " + getLine() + ". " + s);
   }
 
   @Override
   public Object getLVal() {
     
-    return yylval;
+    return yylex.yytext();
   }
 
   @Override
@@ -242,4 +279,78 @@ class JavaCompilerLexer implements JavaCompiler.Lexer {
 
 
 }
+
+
+
+class MainClass{
+
+  String className;
+  List<Method> methodList;
+  List<Variable> variableList;
+  
+  public MainClass(){
+    this.methodList = new ArrayList<>();
+    this.variableList = new ArrayList<>();
+  
+  }
+  public void addMethod(Method method){
+    this.methodList.add(method);
+  
+  }
+  public void addVariable(Variable variable){
+  
+    this.variableList.add(variable);
+  }
+  public List<Method> getMethods(){
+  
+  	return this.methodList;
+  }
+  public boolean hasMethod(String methodName){
+    for (Method m:this.methodList){
+    	if(m.methodName.equals(methodName)){
+    	
+    	  return true;
+    	}
+    
+    }
+    return false;
+  }
+
+}
+class Method{
+  public String methodName;
+  public String type;
+  public List<Param> params;
+  
+  public Method(){this.params = new ArrayList<>();}
+  
+  public Method(String methodName, String type, List<Param> params){
+    this.methodName = methodName;
+    this.type = type;
+    this.params = params;
+  
+  }
+
+}
+class Variable{
+  public String variableName;
+  public String type;
+  public String value;
+  
+  public Variable(){}
+
+}
+class Param{
+  public String paramName;
+  public String paramType;
+  
+  public Param(){}
+  
+  public Param(String paramName, String paramType){
+    this.paramName = paramName;
+    this.paramType = paramType;
+  
+  }
+}
+
 

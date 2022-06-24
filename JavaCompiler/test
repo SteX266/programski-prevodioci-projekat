@@ -1,6 +1,30 @@
 class Fac {
-  public int ComputeFac(int num) {
-    int num_aux = 5;
+  public int ComputeFac() {
+    int num_aux;
+    if (num == 0) {
+      num_aux = 1;
+    }
+    else {
+      num_aux = num;
+    }
+    this.callFunction(blyat, oce);
+    return num_aux;
+  }
+  
+    public int ComputeFac() {
+    int num_aux;
+    if (num == 0) {
+      num_aux = 1;
+    }
+    else {
+      num_aux = num;
+    }
+    this.callFunction(blyat, oce);
+    return num_aux;
+  }
+  
+    public int ComputeFac() {
+    int num_aux;
     if (num == 0) {
       num_aux = 1;
     }
