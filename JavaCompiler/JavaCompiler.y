@@ -23,8 +23,49 @@
   }
   
   MainClass mainClass = new MainClass();
-
   
+  ArrayList<Param> currentParams = new ArrayList<>();
+  
+  ArrayList<Value> calledParams = new ArrayList<>();
+  
+  public boolean isSemanticGood = true;
+  
+  int depth = 0;
+  
+  Method currentMethod = null;
+  
+  public void setIsSemanticGood(boolean isGood){
+    
+    isSemanticGood = isGood;
+  }
+  
+  public Value getSymbolValue(String symbolName){
+    Value v = null;
+    
+    for(Method m:mainClass.methodList){
+      if(m.methodName.equals(symbolName)){
+        v = new Value(m.type, null);  
+      }
+    }
+    for (Variable var:mainClass.variableList){
+      if(var.variableName.equals(symbolName)){
+        v = new Value(var.type, symbolName);
+      }
+    }
+    if(depth != 0){
+      for (Variable var:currentMethod.variables){   
+        if(var.variableName.equals(symbolName)){
+        if (var.depth == depth && var.method.methodName.equals(currentMethod.methodName)){
+          v = new Value(var.type, symbolName);
+        }
+        
+       }
+     }
+    
+    }
+    return v;
+  
+  }
 
   public static void main(String args[]) throws IOException {
     JavaCompilerLexer lexer = new JavaCompilerLexer(System.in);
@@ -35,6 +76,14 @@
     else{
     	System.out.println("Parsing Result = ERROR");
     }
+    if(parser.isSemanticGood){
+    
+    System.out.println("Semantic Result = SUCCESS");
+    }
+    else{
+    System.out.println("Semantic Result = ERROR");
+    }
+
     return;
   }
 }
@@ -47,6 +96,7 @@
 %token _RETURN
 %token _CLASS
 %token _PUBLIC
+%token _PRIVATE
 %token _STATIC
 
 %token _MAIN
@@ -73,14 +123,19 @@
 %token _DOT
 
 %token <String> _ID
-%token <Integer> _INT_NUMBER
+%token <String> _INT_NUMBER
 %token <String> _INT
 %token <String> _STRING
 %token <String> _VOID
+%token <String> _STRING_VALUE
 
+%type <Value> given_value
+%type <Value> exp
 %type <String> type 
 %type <String> variable_type
-
+%type <String> literal
+%type <Method> method_call
+%type <Value> num_exp
 
 %%
 
@@ -100,46 +155,165 @@ declaration_list
   ;
 
 declaration
-  : variable_declaration
+  : variable_declaration 
   | main_method_declaration
   | method_declaration
   ;
   
-main_method_declaration
-  : _PUBLIC _STATIC _VOID _MAIN _LPAREN _STRING _ARGS _LSQUARE _RSQUARE  _RPAREN _LBRACKET statement_list _RBRACKET
   
-method_declaration
-  : _PUBLIC type _ID _LPAREN _RPAREN _LBRACKET statement_list _RBRACKET
-   {
-     if(mainClass.hasMethod($3)){
-     
+
+main_method_declaration
+  : _PUBLIC _STATIC _VOID _MAIN _LPAREN _RPAREN
+    {
+    
+       if(mainClass.hasMethod("main")){
+       System.err.println("Error, redefinition of method " + $3);
+       setIsSemanticGood(false);
        
      }
-   	mainClass.addMethod(new Method($3, $2, new ArrayList<Param>()));
-   	for (Method m:mainClass.getMethods()){
-   	  System.out.println(m.methodName);
-   	
-   	}
-   
-   
-   }
-  | _PUBLIC type _ID _LPAREN parameters _RPAREN _LBRACKET statement_list _RBRACKET
-  {
-  
+     else{
+     	Method m = new Method("main", $3, new ArrayList<Param>());
+        mainClass.addMethod(m);
+        currentMethod = m;
+        depth = 1;
+     }
   
   
   }
+   _LBRACKET statement_list _RBRACKET {currentMethod = null; depth=0;}
 
   
+method_declaration
+  : _PUBLIC type _ID _LPAREN _RPAREN
+   {
+     if(mainClass.hasMethod($3)){
+       System.err.println("Error, redefinition of method " + $3);
+       setIsSemanticGood(false);   
+     }
+     else{
+     	Method m = new Method($3, $2, new ArrayList<Param>());
+     	currentMethod = m;
+        mainClass.addMethod(m);
+        depth = 1;
+     }
+   }
+   _LBRACKET statement_list _RBRACKET {currentMethod = null; depth=0;}
+
+  | _PUBLIC type _ID _LPAREN parameters _RPAREN
+    {
+     if(mainClass.hasMethod($3)){
+       System.err.println("Error, redefinition of method " + $3);
+       setIsSemanticGood(false);
+     }
+     else{
+        Method m = new Method($3, $2, currentParams);
+     	currentMethod = m;
+        mainClass.addMethod(m);   
+        depth = 1;
+
+     }
+  
+  }
+  
+   _LBRACKET statement_list _RBRACKET {currentMethod = null; depth=0;}
+   
+   
+
   ;
   
 parameters
-  : parameters _COMMA variable_type _ID
-  | variable_type _ID 
+  : parameters _COMMA variable_type _ID { currentParams.add(new Param($4,$3));}
+  | variable_type _ID {currentParams = new ArrayList<>(); currentParams.add(new Param($2, $1));}
   ;
   
+
 variable_declaration
-  : variable_type _ID _SEMICOLON
+  : variable_type _ID _SEMICOLON 
+  {
+    if (depth == 0){
+      Method m = new Method();
+      Variable var = new Variable($2, $1, depth, m);
+      
+      if(mainClass.hasVariable(var)){
+      
+        System.err.println("Error, redefinition of variable " + $2);
+        setIsSemanticGood(false);
+      
+      }
+      else{
+      
+        mainClass.addVariable(var);
+      }
+    }
+    
+    else{
+      Method m = mainClass.getMethodByName(currentMethod.methodName);
+      Variable var = new Variable($2, $1, depth, m);
+      if(currentMethod.hasVariable(var) || currentMethod.hasParamWithSameName(var)){
+      
+      System.err.println("Error, variable " + $2 + " already exists in current scope");
+      setIsSemanticGood(false);
+      }
+      else{
+        for(Method method:mainClass.methodList){
+          if(method.methodName.equals(currentMethod.methodName)){
+          method.addVariable(var);
+          }
+        }   
+      }
+    }
+  }
+  | variable_type _ID _ASSIGN given_value _SEMICOLON
+    { 
+    
+      if(!$1.equals($4.type)){
+      
+        System.err.println("Error, wrong value given to a variable "+$2 +" with type "  + $1);
+      }
+    
+    if (depth == 0){
+      Method m = new Method();
+      Variable var = new Variable($2, $1, $4.value,depth, m); 
+      if(mainClass.hasVariable(var)){
+      
+        System.err.println("Error, redefinition of variable " + $2);
+        setIsSemanticGood(false);
+      
+      }
+      else{
+      
+        mainClass.addVariable(var);
+      }
+    }
+    
+    else{
+      Method m = mainClass.getMethodByName(currentMethod.methodName);
+      Variable var = new Variable($2, $1, $4.value,depth, m);
+      
+      if(currentMethod.hasVariable(var) || currentMethod.hasParamWithSameName(var)){
+      
+      System.err.println("Error, variable " + $2 + " already exists in current scope");
+      setIsSemanticGood(false);
+      }
+      else{
+      
+      for(Method method:mainClass.methodList){
+        if(method.methodName.equals(currentMethod.methodName)){
+          method.addVariable(var);
+          }
+        
+      }
+
+    }
+
+  }
+  }
+  
+  ;
+
+given_value
+  : _STRING_VALUE {$$ = new Value("String", $1);}
+  | literal {$$ = new Value("int", $1);}
   ;
 
 
@@ -163,18 +337,57 @@ print_statement
 
 method_call
   : _THIS _DOT _ID _LPAREN _RPAREN _SEMICOLON
-  | _THIS _DOT _ID _LPAREN method_params _RPAREN _SEMICOLON
+  {
+    if(mainClass.hasMethod($3)){
+      if(mainClass.getMethodByName($3).params.size()>0){
+        System.err.println("Error, method doesn't require any parameters");
+      }
+      $$ = mainClass.getMethodByName($3);
+    }
+    
+    else{
+      System.err.println("Error, method not declared!");
+      setIsSemanticGood(false);
+      $$ = new Method();
+    }  
+  }
+  | _THIS _DOT _ID _LPAREN called_params _RPAREN _SEMICOLON
+  {
+    if(mainClass.hasMethod($3)){
+      Method method = mainClass.getMethodByName($3);
+      $$ = method;
+      if(method.params.size() != calledParams.size()){
+
+        System.err.println("Error, wrong number of parameters!");
+        setIsSemanticGood(false);
+      }
+      else{
+      	int count = 0;
+        for (Param p:method.params){
+          if(!p.paramType.equals(calledParams.get(count).type)){
+          
+            System.err.println("Error, wrong type of function parameters!");
+            setIsSemanticGood(false);
+          }
+        
+        }
+      
+      }
+    }
+    
+    else{
+      System.err.println("Error, method not declared!");
+      setIsSemanticGood(false);
+      $$ = new Method();
+    }  
+  }
   ;
   
-method_params
-  : method_params _COMMA param
-  | param
+called_params
+  : called_params _COMMA exp {calledParams.add($3);}
+  | exp  {calledParams = new ArrayList<>();calledParams.add($1);}
   ;
 
-param
-  : _INT_NUMBER
-  | _ID
-  ;
   
 type
   : _VOID {$$="void";}
@@ -188,37 +401,69 @@ variable_type
 
 
 compound_statement
-  : _LBRACKET statement_list _RBRACKET
+  : _LBRACKET{depth++;} statement_list _RBRACKET {depth--;}
   ;
 
 assignment_statement
-  : _ID _ASSIGN num_exp _SEMICOLON
+  : _ID _ASSIGN num_exp _SEMICOLON 
+  {
+    Value v = getSymbolValue($1);
+    if(v == null){
+      System.err.println("Error, not declared!");
+    }
+    else{
+      if(!v.type.equals($3.type)){
+        System.err.println("incompatible types in assignment");
+      
+      }
+    
+    }
+  
+  }
   ;
 
 num_exp
-  : exp
-  | num_exp _AROP exp
+  : exp {$$ = $1;}
+  | num_exp _AROP exp 
+  {
+  if($1 != null && $3!=null){
+    if (!$1.type.equals($3.type)){
+  	
+  	System.err.println("Error, not same type!");
+  	setIsSemanticGood(false);
+    }
+    }
+        else{
+      System.err.println("Error, not declared or doesn't have value!");
+    }
+  }
   ;
 
 exp
-  : literal 
-  | _ID
-  | function_call
-  | _LPAREN num_exp _RPAREN
+  : given_value  {$$ = $1;}
+  | _ID {
+  Value v = getSymbolValue($1);
+  if(v == null){
+    	System.err.println("Error, not declared!");
+  	setIsSemanticGood(false);
+  	$$ = new Value();
+  }
+  else{
+  
+    $$ = v;
+  }
+  
+  
+  
+  }
+  | method_call {$$ = new Value($1.type, null);}
+  | _LPAREN num_exp _RPAREN {$$ = new Value("int", null);}
   ;
 
 literal
-  : _INT_NUMBER 
+  : _INT_NUMBER {$$ = $1;}
   ;
 
-function_call
-  : _ID _LPAREN argument _RPAREN
-  ;
-
-argument
-  : /* empty */
-  | num_exp
-  ;
 
 if_statement
   : if_part _ELSE statement
@@ -229,11 +474,30 @@ if_part
   ;
 
 rel_exp
-  : num_exp _RELOP num_exp
+  : num_exp _RELOP num_exp {
+  
+  if($1 != null && $3!=null){
+    if(!$1.type.equals($3.type)){
+    
+      System.err.println("Error, not same type!");
+      setIsSemanticGood(false);
+    }
+    }
+    else{
+      System.err.println("Error, not declared or doesn't have value!");
+    }
+  
+  }
   ;
 
 return_statement
   : _RETURN num_exp _SEMICOLON
+  {
+    if(!$2.type.equals(currentMethod.type)){
+      System.err.println("Error, return value with type "+$2.type +"is not the right type!");
+      setIsSemanticGood(false);    
+    }
+  }
   ;
 
 
@@ -315,29 +579,96 @@ class MainClass{
     }
     return false;
   }
+  
+   public boolean hasVariable(Variable variable){
+    for (Variable v:this.variableList){
+      if (variable.variableName.equals(v.variableName)){
+        return true;
+      }
+
+    }
+    return false;
+  }
+  
+  public Method getMethodByName(String methodName){
+   for (Method m:this.methodList){
+    	if(m.methodName.equals(methodName)){
+    	
+    	  return m;
+    	}
+    
+    }
+    return new Method(); 
+  }
+
 
 }
 class Method{
   public String methodName;
   public String type;
   public List<Param> params;
+  public List<Variable> variables;
   
-  public Method(){this.params = new ArrayList<>();}
+  public Method(){this.params = new ArrayList<>(); this.variables = new ArrayList<>();}
   
-  public Method(String methodName, String type, List<Param> params){
+  
+  public Method(String methodName, String type, ArrayList<Param> params){
     this.methodName = methodName;
     this.type = type;
     this.params = params;
+    this.variables = new ArrayList<>();
   
   }
-
+  
+  public boolean hasVariable(Variable variable){
+    for (Variable v:this.variables){
+      if (variable.variableName.equals(v.variableName)){
+        return true;
+      }
+    }
+    return false;
+  
+  
+  }
+  
+  public boolean hasParamWithSameName(Variable variable){
+    for (Param p:this.params){
+      if(p.paramName.equals(variable.variableName)){
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  public void addVariable(Variable var){
+    this.variables.add(var);
+  }
 }
 class Variable{
   public String variableName;
   public String type;
   public String value;
   
+  public int depth;
+  public Method method;
+  
   public Variable(){}
+  
+  public Variable(String variableName, String type, int depth, Method method){
+    this.variableName = variableName;
+    this.type = type;
+    this.method = method;
+    this.depth = depth;
+    
+  }
+  
+    public Variable(String variableName, String type, String value, int depth, Method method){
+    this.variableName = variableName;
+    this.type = type;
+    this.value = value;
+    this.depth = depth;
+    this.method = method;
+  }
 
 }
 class Param{
@@ -352,5 +683,23 @@ class Param{
   
   }
 }
+class Value{
+  public String type;
+  public String value;
+  
+  public Value(String type, String value){
+  	this.type = type;
+  	this.value = value;
+  
+  }
+  public Value(){
+    this.type ="";
+    this.value = "";
+  
+  }
+
+
+}
+
 
 

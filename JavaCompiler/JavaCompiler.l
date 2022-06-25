@@ -19,6 +19,8 @@ ID = [a-zA-Z][_a-zA-Z0-9]*
 SKIP = [ \t\n\r]+
 UNKNOWN_TOKEN = .
 INT_NUMBER = [+-]?[0-9]{1,10}
+STRING_VALUE = "\""[^\"]*"\"" 
+               
 
 %%
 
@@ -32,6 +34,7 @@ INT_NUMBER = [+-]?[0-9]{1,10}
 	
 	"class"		{ return JavaCompilerLexer._CLASS;}
 	"public"	{ return JavaCompilerLexer._PUBLIC;}
+	"private"	{ return JavaCompilerLexer._PRIVATE;}
 
 	"static"	{ return JavaCompilerLexer._STATIC;}
 	"void"		{ return JavaCompilerLexer._VOID;}
@@ -68,9 +71,12 @@ INT_NUMBER = [+-]?[0-9]{1,10}
 	"=="            { return JavaCompilerLexer._RELOP; }
 	"!="            { return JavaCompilerLexer._RELOP; }
 	
+	
 	{ID}		{ return JavaCompilerLexer._ID;}
 	{SKIP}		{}
 	{INT_NUMBER}	{ return JavaCompilerLexer._INT_NUMBER;}
+	
+	{STRING_VALUE}  { return JavaCompilerLexer._STRING_VALUE;}
 	
 	{UNKNOWN_TOKEN}	{ System.out.println("Lexical error!" );return JavaCompilerLexer._UNKNOWN_TOKEN;}
 

@@ -1,37 +1,41 @@
 class Fac {
-  public int ComputeFac() {
+
+  int num_aux = 5;
+  String aaa = "havbkkAakasgkv";
+  
+  public int callFunction(){
+  
+  }
+  public int ComputeFac(int nesto) {
+
+    int probica;
     int num_aux;
-    if (num == 0) {
-      num_aux = 1;
+    if (num_aux == 0) {
+      int blyat;
+      num_aux = 5;
     }
     else {
-      num_aux = num;
+      num_aux = blyat;
     }
-    this.callFunction(blyat, oce);
+    this.callFunction();
     return num_aux;
   }
   
-    public int ComputeFac() {
+  
+ public int ComputeFac1(int blyat2, String nesto) {
+
     int num_aux;
-    if (num == 0) {
+    num_aux = probica;
+    int blyat;
+    if (blyat == 0) {
       num_aux = 1;
     }
     else {
-      num_aux = num;
+      num_aux = 5;
     }
-    this.callFunction(blyat, oce);
+
     return num_aux;
   }
   
-    public int ComputeFac() {
-    int num_aux;
-    if (num == 0) {
-      num_aux = 1;
-    }
-    else {
-      num_aux = num;
-    }
-    this.callFunction(blyat, oce);
-    return num_aux;
-  }
+
 }
