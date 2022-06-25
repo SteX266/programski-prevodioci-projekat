@@ -33,13 +33,14 @@
   int depth = 0;
   
   Method currentMethod = null;
+  Constructor currentConstructor = null;
   
   public void setIsSemanticGood(boolean isGood){
     
     isSemanticGood = isGood;
   }
   
-  public Value getSymbolValue(String symbolName){
+  public Value getSymbolValue(String symbolName, boolean isClassVariable){
     Value v = null;
     
     for(Method m:mainClass.methodList){
@@ -50,12 +51,16 @@
     for (Variable var:mainClass.variableList){
       if(var.variableName.equals(symbolName)){
         v = new Value(var.type, symbolName);
+
       }
     }
+   if(isClassVariable){
+          return v;
+        }
     if(depth != 0){
       for (Variable var:currentMethod.variables){   
         if(var.variableName.equals(symbolName)){
-        if (var.depth == depth && var.method.methodName.equals(currentMethod.methodName)){
+        if ((var.depth == depth || var.depth == 1) && var.method.methodName.equals(currentMethod.methodName)){
           v = new Value(var.type, symbolName);
         }
         
@@ -136,6 +141,7 @@
 %type <String> literal
 %type <Method> method_call
 %type <Value> num_exp
+%type <String> identifier
 
 %%
 
@@ -146,7 +152,7 @@ program
   ;
   
 main_class
-  : _CLASS _ID _LBRACKET declaration_list _RBRACKET
+  : _CLASS _ID{mainClass.className = $2;} _LBRACKET declaration_list _RBRACKET
   ;
 
 declaration_list
@@ -158,9 +164,11 @@ declaration
   : variable_declaration 
   | main_method_declaration
   | method_declaration
+  | constructor_declaration
   ;
   
   
+
 
 main_method_declaration
   : _PUBLIC _STATIC _VOID _MAIN _LPAREN _RPAREN
@@ -182,6 +190,50 @@ main_method_declaration
   }
    _LBRACKET statement_list _RBRACKET {currentMethod = null; depth=0;}
 
+constructor_declaration
+  : _PUBLIC _ID _LPAREN _RPAREN
+{
+     if($2.equals(mainClass.className)){
+     
+       if(mainClass.hasEmptyConstructor()){
+       System.err.println("Error, redefinition of empty constructor");
+       setIsSemanticGood(false);   
+     }
+     else{
+     	Constructor c = new Constructor(new ArrayList<Param>());
+     	currentConstructor = c;
+        mainClass.addConstructor(c);
+        depth = 1;
+     }
+     
+     }
+     else{
+      System.out.println(mainClass.className);
+      System.err.println("Error, constructor must have the same name as the class" );
+     }
+}
+  
+   _LBRACKET statement_list _RBRACKET {currentConstructor = null; depth = 0;}
+
+  
+  | _PUBLIC _ID _LPAREN parameters _RPAREN
+  {
+     if(mainClass.hasConstructor(currentParams)){
+       System.err.println("Error, redefinition of constructor");
+       setIsSemanticGood(false);
+     }
+     else{
+     	Constructor c = new Constructor(currentParams);
+     	currentConstructor = c;
+        mainClass.addConstructor(c);
+        depth = 1;
+
+     }
+  
+  }
+  
+  
+   _LBRACKET statement_list _RBRACKET {currentConstructor = null; depth = 0;}
   
 method_declaration
   : _PUBLIC type _ID _LPAREN _RPAREN
@@ -216,9 +268,6 @@ method_declaration
   }
   
    _LBRACKET statement_list _RBRACKET {currentMethod = null; depth=0;}
-   
-   
-
   ;
   
 parameters
@@ -328,37 +377,60 @@ statement
   | assignment_statement
   | if_statement
   | return_statement
-  | method_call
+  | method_call _SEMICOLON
   | print_statement
   ;
   
 print_statement
-  : _SOUT _LPAREN _INT_NUMBER _RPAREN _SEMICOLON
+  : _SOUT _LPAREN _STRING_VALUE _RPAREN _SEMICOLON
+  
+
+identifier
+  : _ID {$$= $1;}
+  | _THIS _DOT _ID {$$= "this."+$3;}
+  ;
 
 method_call
-  : _THIS _DOT _ID _LPAREN _RPAREN _SEMICOLON
+  : identifier _LPAREN _RPAREN 
   {
-    if(mainClass.hasMethod($3)){
-      if(mainClass.getMethodByName($3).params.size()>0){
-        System.err.println("Error, method doesn't require any parameters");
+  String id;
+  if($1.startsWith("this.")){
+    id = $1.substring(5);
+  }
+  else{
+    id = $1;
+  
+  }
+    if(mainClass.hasMethod(id)){
+      if(mainClass.getMethodByName(id).params.size()>0){
+        System.err.println("Error, method "+id+" requires parameters");
       }
-      $$ = mainClass.getMethodByName($3);
+      $$ = mainClass.getMethodByName(id);
     }
     
     else{
-      System.err.println("Error, method not declared!");
+      System.err.println("Error, method "+id+" not declared!");
       setIsSemanticGood(false);
       $$ = new Method();
     }  
   }
-  | _THIS _DOT _ID _LPAREN called_params _RPAREN _SEMICOLON
+  | identifier _LPAREN called_params _RPAREN 
   {
-    if(mainClass.hasMethod($3)){
-      Method method = mainClass.getMethodByName($3);
+    	String id;
+	if($1.startsWith("this.")){
+	  id = $1.substring(5);
+	}
+	else{
+	  id = $1;
+
+	}
+  
+    if(mainClass.hasMethod(id)){
+      Method method = mainClass.getMethodByName(id);
       $$ = method;
       if(method.params.size() != calledParams.size()){
 
-        System.err.println("Error, wrong number of parameters!");
+        System.err.println("Error, wrong number of parameters for method " + id);
         setIsSemanticGood(false);
       }
       else{
@@ -366,7 +438,7 @@ method_call
         for (Param p:method.params){
           if(!p.paramType.equals(calledParams.get(count).type)){
           
-            System.err.println("Error, wrong type of function parameters!");
+            System.err.println("Error, wrong function parameters! For method "+id);
             setIsSemanticGood(false);
           }
         
@@ -376,7 +448,7 @@ method_call
     }
     
     else{
-      System.err.println("Error, method not declared!");
+      System.err.println("Error, method "+id+" not declared!");
       setIsSemanticGood(false);
       $$ = new Method();
     }  
@@ -401,19 +473,31 @@ variable_type
 
 
 compound_statement
-  : _LBRACKET{depth++;} statement_list _RBRACKET {depth--;}
+  : _LBRACKET{depth++;} statement_list _RBRACKET {depth--; currentMethod.removeVariables(depth);}
   ;
 
 assignment_statement
-  : _ID _ASSIGN num_exp _SEMICOLON 
+  : identifier _ASSIGN num_exp _SEMICOLON 
   {
-    Value v = getSymbolValue($1);
+      boolean isClassVariable = false;
+  String id;
+  if($1.startsWith("this.")){
+    isClassVariable = true;
+    id = $1.substring(5);
+  }
+  else{
+    id = $1;
+  }
+  
+  Value v = getSymbolValue(id, isClassVariable);
     if(v == null){
-      System.err.println("Error, not declared!");
+      System.err.println("Error, "+id+" doesn't exist in current scope!");
+      setIsSemanticGood(false);
     }
     else{
       if(!v.type.equals($3.type)){
-        System.err.println("incompatible types in assignment");
+        System.err.println("incompatible types in assignment for "+id );
+        setIsSemanticGood(false);
       
       }
     
@@ -429,7 +513,7 @@ num_exp
   if($1 != null && $3!=null){
     if (!$1.type.equals($3.type)){
   	
-  	System.err.println("Error, not same type!");
+  	System.err.println("Error, "+$1+ " and "+$3+ "are not the same type!");
   	setIsSemanticGood(false);
     }
     }
@@ -441,10 +525,21 @@ num_exp
 
 exp
   : given_value  {$$ = $1;}
-  | _ID {
-  Value v = getSymbolValue($1);
+  | identifier 
+{
+  boolean isClassVariable = false;
+  String id;
+  if($1.startsWith("this.")){
+    isClassVariable = true;
+    id = $1.substring(5);
+  }
+  else{
+    id = $1;
+  }
+  
+  Value v = getSymbolValue(id, isClassVariable);
   if(v == null){
-    	System.err.println("Error, not declared!");
+    	System.err.println("Error, "+id+" doesn't exist in current scope!");
   	setIsSemanticGood(false);
   	$$ = new Value();
   }
@@ -452,10 +547,7 @@ exp
   
     $$ = v;
   }
-  
-  
-  
-  }
+}
   | method_call {$$ = new Value($1.type, null);}
   | _LPAREN num_exp _RPAREN {$$ = new Value("int", null);}
   ;
@@ -479,7 +571,7 @@ rel_exp
   if($1 != null && $3!=null){
     if(!$1.type.equals($3.type)){
     
-      System.err.println("Error, not same type!");
+      System.err.println("Error, "+$1+ " and "+$3+ "are not the same type!");
       setIsSemanticGood(false);
     }
     }
@@ -551,10 +643,12 @@ class MainClass{
   String className;
   List<Method> methodList;
   List<Variable> variableList;
+  List<Constructor> constructorList;
   
   public MainClass(){
     this.methodList = new ArrayList<>();
     this.variableList = new ArrayList<>();
+    this.constructorList = new ArrayList<>();
   
   }
   public void addMethod(Method method){
@@ -564,6 +658,11 @@ class MainClass{
   public void addVariable(Variable variable){
   
     this.variableList.add(variable);
+  }
+  
+    public void addConstructor(Constructor constructor){
+  
+    this.constructorList.add(constructor);
   }
   public List<Method> getMethods(){
   
@@ -600,8 +699,59 @@ class MainClass{
     }
     return new Method(); 
   }
+  public boolean hasConstructor(ArrayList<Param> params){
+    for(Constructor c:constructorList){
+ 	if (params.size() == c.params.size()){
+ 	  int count = 0;
+ 	  int sameParams = 0;
+ 	  for(Param p:params){
+ 	    if(p.paramType.equals(c.params.get(count).paramType)){
+ 	    
+ 	      sameParams++;
+ 	    }
+ 	    count++;
+ 	  
+ 	  }
+ 	  if(sameParams == count){
+ 	    return true;
+ 	  }
+ 	
+ 	}
+ 
+ 
+   }
+  return false;
+  
+  }
+  public boolean hasEmptyConstructor(){
+  
+    for(Constructor c:constructorList){
+      if(c.params.size() == 0){
+      
+        return true;
+      }
+      
+    }
+  return false;
+  }
 
 
+
+}
+class Constructor{
+  
+  public List<Param> params;
+  List<Variable> variables;
+  
+  public Constructor(ArrayList<Param> params){
+  
+    this.params = params;
+    this.variables = new ArrayList<>();
+  
+  
+  }
+  
+  
 }
 class Method{
   public String methodName;
@@ -642,6 +792,21 @@ class Method{
   
   public void addVariable(Variable var){
     this.variables.add(var);
+  }
+  
+    public void removeVariables(int depth){
+    List<Variable> variablesToDelete = new ArrayList<Variable>();
+    for (Variable var:variables){
+      if(var.depth > depth){
+      
+        variablesToDelete.add(var);
+      }
+    }
+    for (Variable v:variablesToDelete){
+    
+      variables.remove(v);
+    
+    }
   }
 }
 class Variable{
