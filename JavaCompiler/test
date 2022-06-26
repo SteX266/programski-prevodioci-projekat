@@ -16,7 +16,24 @@ class Fac {
   public Fac(int b){}
   
   public Fac(String a){
-  
+    int probica;
+    probica = callFunction(probica);
+    int num_aux;
+    int blyat;
+    if (num_aux == 0) {
+      
+      int a;
+      
+      num_aux = 5;
+    }
+    else {
+	int b;
+	
+    }
+    num_aux = 10;
+
+    this.callFunction(probica);
+
   }
   
   public Fac(int a, String b){

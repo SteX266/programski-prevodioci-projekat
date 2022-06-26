@@ -1,0 +1,12 @@
+class Klasa{
+
+  String aa = "novi_string";
+  
+  public int function(){
+  
+    String b;
+    int aa = 5;
+    b = this.aa;
+
+  }
+}

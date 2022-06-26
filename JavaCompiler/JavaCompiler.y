@@ -33,7 +33,8 @@
   int depth = 0;
   
   Method currentMethod = null;
-  Constructor currentConstructor = null;
+
+  boolean isMethodCurrent = true;
   
   public void setIsSemanticGood(boolean isGood){
     
@@ -201,7 +202,7 @@ constructor_declaration
      }
      else{
      	Constructor c = new Constructor(new ArrayList<Param>());
-     	currentConstructor = c;
+     	currentMethod = c;
         mainClass.addConstructor(c);
         depth = 1;
      }
@@ -213,7 +214,7 @@ constructor_declaration
      }
 }
   
-   _LBRACKET statement_list _RBRACKET {currentConstructor = null; depth = 0;}
+   _LBRACKET statement_list _RBRACKET {currentMethod = null; depth = 0;}
 
   
   | _PUBLIC _ID _LPAREN parameters _RPAREN
@@ -224,7 +225,7 @@ constructor_declaration
      }
      else{
      	Constructor c = new Constructor(currentParams);
-     	currentConstructor = c;
+     	currentMethod = c;
         mainClass.addConstructor(c);
         depth = 1;
 
@@ -233,7 +234,7 @@ constructor_declaration
   }
   
   
-   _LBRACKET statement_list _RBRACKET {currentConstructor = null; depth = 0;}
+   _LBRACKET statement_list _RBRACKET {currentMethod = null; depth = 0;}
   
 method_declaration
   : _PUBLIC type _ID _LPAREN _RPAREN
@@ -296,7 +297,14 @@ variable_declaration
     }
     
     else{
-      Method m = mainClass.getMethodByName(currentMethod.methodName);
+      Method m;
+      if(currentMethod.methodName ==""){
+        
+        m = mainClass.getConstructorByParams(currentMethod.params);
+      }
+    else{
+      m = mainClass.getMethodByName(currentMethod.methodName);
+      }
       Variable var = new Variable($2, $1, depth, m);
       if(currentMethod.hasVariable(var) || currentMethod.hasParamWithSameName(var)){
       
@@ -304,11 +312,7 @@ variable_declaration
       setIsSemanticGood(false);
       }
       else{
-        for(Method method:mainClass.methodList){
-          if(method.methodName.equals(currentMethod.methodName)){
-          method.addVariable(var);
-          }
-        }   
+        currentMethod.addVariable(var); 
       }
     }
   }
@@ -336,7 +340,14 @@ variable_declaration
     }
     
     else{
-      Method m = mainClass.getMethodByName(currentMethod.methodName);
+    Method m;
+    if(currentMethod.methodName ==""){
+        
+        m = mainClass.getConstructorByParams(currentMethod.params);
+      }
+    else{
+      m = mainClass.getMethodByName(currentMethod.methodName);
+      }
       Variable var = new Variable($2, $1, $4.value,depth, m);
       
       if(currentMethod.hasVariable(var) || currentMethod.hasParamWithSameName(var)){
@@ -346,12 +357,7 @@ variable_declaration
       }
       else{
       
-      for(Method method:mainClass.methodList){
-        if(method.methodName.equals(currentMethod.methodName)){
-          method.addVariable(var);
-          }
-        
-      }
+     currentMethod.addVariable(var);
 
     }
 
@@ -699,6 +705,34 @@ class MainClass{
     }
     return new Method(); 
   }
+  
+  public Method getConstructorByParams(List<Param> params){
+      for(Constructor c:constructorList){
+ 	if (params.size() == c.params.size()){
+ 	  int count = 0;
+ 	  int sameParams = 0;
+ 	  for(Param p:params){
+ 	    if(p.paramType.equals(c.params.get(count).paramType)){
+ 	    
+ 	      sameParams++;
+ 	    }
+ 	    count++;
+ 	  
+ 	  }
+ 	  if(sameParams == count){
+ 	    return c;
+ 	  }
+ 	
+ 	}
+ 
+ 
+   }
+  
+  return new Constructor();
+  
+  
+  
+  }
   public boolean hasConstructor(ArrayList<Param> params){
     for(Constructor c:constructorList){
  	if (params.size() == c.params.size()){
@@ -738,15 +772,17 @@ class MainClass{
 
 
 }
-class Constructor{
+class Constructor extends Method{
   
   public List<Param> params;
-  List<Variable> variables;
-  
+
+  public Constructor(){}
   public Constructor(ArrayList<Param> params){
   
     this.params = params;
     this.variables = new ArrayList<>();
+    this.methodName = "";
+    this.type = "";
   
   
   }
