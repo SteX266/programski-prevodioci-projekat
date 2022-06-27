@@ -931,30 +931,7 @@ class Method{
     
     }
   }
-  
-  public boolean hasSameParams(List<Value> values){
-  
-    if(values.size() == params.size()){
-      int count = 0;
-      int sameParams = 0;
-      for (Param p:params){
-      if (p.paramType.equals(values.get(count).type)){
-      
-        sameParams++;
-      }
-    count++;
-    }
-    if(count == sameParams){
-    
-      return true;
-    }
-    }
-    return false;
-
-  
-  }
-  
-  
+   
 }
 class Variable{
   public String variableName;
