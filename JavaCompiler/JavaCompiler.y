@@ -67,6 +67,13 @@
         
        }
      }
+     for(Param p:currentParams){
+       if(p.paramName.equals(symbolName)){
+         v = new Value(p.paramType, symbolName);
+       
+       }
+     
+     }
     
     }
     return v;
@@ -214,7 +221,7 @@ constructor_declaration
      }
 }
   
-   _LBRACKET statement_list _RBRACKET {currentMethod = null; depth = 0;}
+   _LBRACKET constructor_call statement_list _RBRACKET {currentMethod = null; depth = 0;}
 
   
   | _PUBLIC _ID _LPAREN parameters _RPAREN
@@ -234,7 +241,7 @@ constructor_declaration
   }
   
   
-   _LBRACKET statement_list _RBRACKET {currentMethod = null; depth = 0;}
+   _LBRACKET constructor_call statement_list _RBRACKET {currentMethod = null; depth = 0;}
   
 method_declaration
   : _PUBLIC type _ID _LPAREN _RPAREN
@@ -269,6 +276,54 @@ method_declaration
   }
   
    _LBRACKET statement_list _RBRACKET {currentMethod = null; depth=0;}
+  ;
+  
+constructor_call
+  : _THIS _LPAREN _RPAREN _SEMICOLON 
+  
+  {
+    if(!mainClass.hasEmptyConstructor()){
+    
+      System.err.println("Error, class doesn't have empty constructor!");
+      setIsSemanticGood(false);
+    }
+    if(currentParams.size() == 0){
+    
+      System.err.println("Error, you can't call constructor from itself");
+      setIsSemanticGood(false);
+    }
+  }
+  | _THIS _LPAREN called_params _RPAREN _SEMICOLON
+  {
+    
+    if (!mainClass.hasConstructorByParams(calledParams)){
+    
+      System.err.println("Error, class doesn't have called constructor!");
+      setIsSemanticGood(false);
+    
+    }
+    if(calledParams.size() == currentParams.size()){
+    int sameParams = 0;
+    int count = 0;
+    for(Param p:currentParams){
+    
+      if(p.paramType.equals(calledParams.get(count).type)){
+      
+        sameParams++;
+      }
+      count++;
+    }
+      if(count == sameParams){
+            System.err.println("Error, you can't call constructor from itself");
+      setIsSemanticGood(false);
+      }
+    }
+
+    
+
+
+  }
+  |
   ;
   
 parameters
@@ -525,6 +580,7 @@ num_exp
     }
         else{
       System.err.println("Error, not declared or doesn't have value!");
+      setIsSemanticGood(false);
     }
   }
   ;
@@ -706,6 +762,30 @@ class MainClass{
     return new Method(); 
   }
   
+  public boolean hasConstructorByParams(List<Value> params){
+  
+    for (Constructor c:constructorList){
+      if(params.size() == c.params.size()){
+        int count = 0;
+        int sameParams = 0;
+        for(Value p:params){
+          if(p.type.equals(c.params.get(count).paramType)){
+            sameParams++;
+          }
+          count++;
+        }
+        if(sameParams == count){
+          return true;
+        }
+      
+      }
+      
+    
+    }
+    return false;
+  
+  }
+  
   public Method getConstructorByParams(List<Param> params){
       for(Constructor c:constructorList){
  	if (params.size() == c.params.size()){
@@ -776,7 +856,14 @@ class Constructor extends Method{
   
   public List<Param> params;
 
-  public Constructor(){}
+  public Constructor(){
+  
+    this.params = new ArrayList<>();
+    this.variables = new ArrayList<>();
+    this.methodName = "";
+    this.type = "";
+  
+  }
   public Constructor(ArrayList<Param> params){
   
     this.params = params;
@@ -844,6 +931,30 @@ class Method{
     
     }
   }
+  
+  public boolean hasSameParams(List<Value> values){
+  
+    if(values.size() == params.size()){
+      int count = 0;
+      int sameParams = 0;
+      for (Param p:params){
+      if (p.paramType.equals(values.get(count).type)){
+      
+        sameParams++;
+      }
+    count++;
+    }
+    if(count == sameParams){
+    
+      return true;
+    }
+    }
+    return false;
+
+  
+  }
+  
+  
 }
 class Variable{
   public String variableName;

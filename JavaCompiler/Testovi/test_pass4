@@ -11,11 +11,16 @@ class Fac {
     b = aaa;
     aaa = b;
   }
-  public Fac(){}
+  public Fac(){
+
+  }
   
-  public Fac(int b){}
+  public Fac(int b){
   
-  public Fac(String a){
+  }
+  
+  public Fac(String a, int b){
+    this();
     int probica;
     probica = callFunction(probica);
     int num_aux;
@@ -39,12 +44,15 @@ class Fac {
   public Fac(int a, String b){
   
   }
-  public Fac(String b,int b){
+  public Fac(String b){
+    this();
   
   }
   public int ComputeFac(int nesto) {
+  
 
     int probica;
+    probica = nesto;
     probica = callFunction(probica);
     int num_aux;
     int blyat;
