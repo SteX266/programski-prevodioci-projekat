@@ -1,0 +1,30 @@
+class Klasa{
+
+  String aa = "novi_string";
+  
+  public static void main(){
+  
+    
+      
+    int aa = 5;
+    if(aa == 5){
+      int b = 3;
+    
+    }
+    else{
+    
+      b = 4;
+    }
+    b = this.aa;
+  
+  }
+
+  
+  public int function(){
+  
+    String b;
+    int aa = 5;
+    b = this.aa;
+
+  }
+}

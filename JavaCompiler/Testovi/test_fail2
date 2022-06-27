@@ -1,0 +1,28 @@
+class Klasa{
+
+  String aa = "novi_string";
+  
+  public static void main(){
+  
+  
+  
+  }
+  
+  public int function(){
+  
+    String b;
+    int aa = 5;
+    b = this.aa;
+
+  }
+  
+    public Fac(String a, int b){
+
+    int probica;
+
+    int num_aux;
+
+
+
+  }
+}

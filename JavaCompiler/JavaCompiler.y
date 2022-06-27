@@ -17,13 +17,8 @@
 
 %code {
   
-  
-  public String getSymbol(){
-    return "abbc";
-  }
-  
   MainClass mainClass = new MainClass();
-  
+
   ArrayList<Param> currentParams = new ArrayList<>();
   
   ArrayList<Value> calledParams = new ArrayList<>();
@@ -181,9 +176,8 @@ declaration
 main_method_declaration
   : _PUBLIC _STATIC _VOID _MAIN _LPAREN _RPAREN
     {
-    
        if(mainClass.hasMethod("main")){
-       System.err.println("Error, redefinition of method " + $3);
+       System.err.println("Error, redefinition of main method!" );
        setIsSemanticGood(false);
        
      }
@@ -207,41 +201,46 @@ constructor_declaration
        System.err.println("Error, redefinition of empty constructor");
        setIsSemanticGood(false);   
      }
+
+     }
      else{
-     	Constructor c = new Constructor(new ArrayList<Param>());
+
+      System.err.println("Error, constructor must have the same name as the class" );
+      setIsSemanticGood(false);  
+     }
+          	Constructor c = new Constructor(new ArrayList<Param>());
      	currentMethod = c;
         mainClass.addConstructor(c);
         depth = 1;
-     }
-     
-     }
-     else{
-      System.out.println(mainClass.className);
-      System.err.println("Error, constructor must have the same name as the class" );
-     }
 }
   
-   _LBRACKET constructor_call statement_list _RBRACKET {currentMethod = null; depth = 0;}
+   _LBRACKET  statement_list _RBRACKET {currentMethod = null; depth = 0;}
 
   
   | _PUBLIC _ID _LPAREN parameters _RPAREN
   {
+  
+       if($2.equals(mainClass.className)){
      if(mainClass.hasConstructor(currentParams)){
        System.err.println("Error, redefinition of constructor");
        setIsSemanticGood(false);
      }
+
+     }
      else{
-     	Constructor c = new Constructor(currentParams);
+     
+     System.err.println("Error, constructor must have the same name as the class" );
+     setIsSemanticGood(false);  
+     }
+        Constructor c = new Constructor(currentParams);
      	currentMethod = c;
         mainClass.addConstructor(c);
         depth = 1;
-
-     }
   
   }
   
   
-   _LBRACKET constructor_call statement_list _RBRACKET {currentMethod = null; depth = 0;}
+   _LBRACKET  statement_list _RBRACKET {currentMethod = null; depth = 0;}
   
 method_declaration
   : _PUBLIC type _ID _LPAREN _RPAREN
@@ -278,53 +277,7 @@ method_declaration
    _LBRACKET statement_list _RBRACKET {currentMethod = null; depth=0;}
   ;
   
-constructor_call
-  : _THIS _LPAREN _RPAREN _SEMICOLON 
-  
-  {
-    if(!mainClass.hasEmptyConstructor()){
-    
-      System.err.println("Error, class doesn't have empty constructor!");
-      setIsSemanticGood(false);
-    }
-    if(currentParams.size() == 0){
-    
-      System.err.println("Error, you can't call constructor from itself");
-      setIsSemanticGood(false);
-    }
-  }
-  | _THIS _LPAREN called_params _RPAREN _SEMICOLON
-  {
-    
-    if (!mainClass.hasConstructorByParams(calledParams)){
-    
-      System.err.println("Error, class doesn't have called constructor!");
-      setIsSemanticGood(false);
-    
-    }
-    if(calledParams.size() == currentParams.size()){
-    int sameParams = 0;
-    int count = 0;
-    for(Param p:currentParams){
-    
-      if(p.paramType.equals(calledParams.get(count).type)){
-      
-        sameParams++;
-      }
-      count++;
-    }
-      if(count == sameParams){
-            System.err.println("Error, you can't call constructor from itself");
-      setIsSemanticGood(false);
-      }
-    }
 
-    
-
-
-  }
-  |
-  ;
   
 parameters
   : parameters _COMMA variable_type _ID { currentParams.add(new Param($4,$3));}
@@ -540,6 +493,7 @@ compound_statement
 assignment_statement
   : identifier _ASSIGN num_exp _SEMICOLON 
   {
+
       boolean isClassVariable = false;
   String id;
   if($1.startsWith("this.")){
@@ -762,29 +716,7 @@ class MainClass{
     return new Method(); 
   }
   
-  public boolean hasConstructorByParams(List<Value> params){
-  
-    for (Constructor c:constructorList){
-      if(params.size() == c.params.size()){
-        int count = 0;
-        int sameParams = 0;
-        for(Value p:params){
-          if(p.type.equals(c.params.get(count).paramType)){
-            sameParams++;
-          }
-          count++;
-        }
-        if(sameParams == count){
-          return true;
-        }
-      
-      }
-      
-    
-    }
-    return false;
-  
-  }
+
   
   public Method getConstructorByParams(List<Param> params){
       for(Constructor c:constructorList){
@@ -813,12 +745,15 @@ class MainClass{
   
   
   }
-  public boolean hasConstructor(ArrayList<Param> params){
+  public boolean hasConstructor(List<Param> params){
+
     for(Constructor c:constructorList){
+      
  	if (params.size() == c.params.size()){
  	  int count = 0;
  	  int sameParams = 0;
  	  for(Param p:params){
+
  	    if(p.paramType.equals(c.params.get(count).paramType)){
  	    
  	      sameParams++;

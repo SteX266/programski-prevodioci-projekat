@@ -1,0 +1,27 @@
+class Klasa{
+
+  String aa = 5;
+  
+  public static void main(){
+      String b;
+    int aa = 5;
+    b = this.aa;
+  
+  }
+
+  
+  public int funkcija(String b, int a){
+  
+    String b;
+    int aa = 5;
+    b = this.aa;
+
+  }
+  
+  public String funkcija2(){
+    int c;
+    funkcija();
+    this.funkcija(c);
+    funkcija3();
+  }
+}

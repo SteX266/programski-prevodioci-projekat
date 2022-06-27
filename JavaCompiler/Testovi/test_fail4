@@ -1,0 +1,41 @@
+class Klasa{
+
+  int aa = 4;
+  
+  int aa = 3;
+  
+  public static void main(){
+    String b;
+    int aa = 5;
+
+  
+  }
+  
+
+  public Klasa(int a){
+  
+  this.aa = 5;
+  }
+  
+  public Klasa(int b){
+  
+  this.aa = 5;
+  }
+  
+
+  
+  public int funkcija(){
+  
+    String b;
+    int bb = 5;
+    int bb =3;
+
+
+  }
+  
+    public int funkcija(){
+  
+     int nesto = 5;
+
+  }
+}

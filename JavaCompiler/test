@@ -5,7 +5,7 @@ class Fac {
   
   public int callFunction(int a){
     int aaa;
-    int b;
+    int b ;
     int callFunction;
     
     b = aaa;
@@ -16,18 +16,15 @@ class Fac {
   }
   
   public Fac(int b){
-    int proba;
-    proba = b;
   
   }
   
   public Fac(String a, int b){
-
+    this();
     int probica;
-
     probica = callFunction(probica);
     int num_aux;
-    int ccc;
+    int blyat;
     if (num_aux == 0) {
       
       int a;
@@ -48,7 +45,7 @@ class Fac {
   
   }
   public Fac(String b){
-
+    this();
   
   }
   public int ComputeFac(int nesto) {
@@ -58,7 +55,7 @@ class Fac {
     probica = nesto;
     probica = callFunction(probica);
     int num_aux;
-    int ccc;
+    int blyat;
     if (num_aux == 0) {
       
       int a;
